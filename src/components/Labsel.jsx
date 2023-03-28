@@ -1,9 +1,15 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import { useDispatch } from 'react-redux';
+import { setAudioUrl } from './audioSlice';
+import { storage } from './firbase';
+import {ref,uploadBytes} from "firebase/storage";
 
 function Labsel() {
   const [inputText, setInputText] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
+  const [resultUrl, setResultUrl] = useState('');
+  const dispatch = useDispatch();
 
   function handleChange(event) {
     setInputText(event.target.value);
@@ -24,17 +30,28 @@ function Labsel() {
     };
 
     axios.post(url, data, {headers: headers, responseType: 'blob'})
-      .then(response => {
-        const audioBlob = new Blob([response.data], {type: 'audio/mp3'});
-        const audioUrl = URL.createObjectURL(audioBlob);
-        setAudioUrl(audioUrl);
+    .then(response => {
+      const audioBlob = new Blob([response.data], {type: 'audio/mp3'});
+      const audioRef = ref(storage, 'audio.mp3');
+      uploadBytes(audioRef, audioBlob)
+      .then(snapshot => {
+        console.log('Uploaded audio successfully');
+        snapshot.ref.getDownloadURL()
+          .then(url => {
+            console.log('Audio download URL:', url);
+            dispatch(setAudioUrl(url));
+          })
+          .catch(error => console.error(error));
       })
       .catch(error => console.error(error));
-  }
+    })
+    .catch(error => console.error(error));
+}
 
   return (
     <div>
-      <input type="text" value={inputText} onChange={handleChange} />
+      <textarea style={{ width: '30%', height: '50%' }} value={inputText} onChange={handleChange} />
+      <br />
       <button onClick={getAudio}>Get Audio</button>
       {audioUrl && (
         <div>
