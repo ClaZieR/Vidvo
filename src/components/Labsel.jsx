@@ -3,12 +3,11 @@ import axios from 'axios';
 import { useDispatch } from 'react-redux';
 import { setAudioUrl } from './audioSlice';
 import { storage } from './firbase';
-import {ref,uploadBytes} from "firebase/storage";
+import { ref, uploadBytes,getDownloadURL } from "firebase/storage";
 
 function Labsel() {
   const [inputText, setInputText] = useState('');
-  const [audioUrl, setAudioUrl] = useState('');
-  const [resultUrl, setResultUrl] = useState('');
+  const [audioUrl, setAudioUrlLocal] = useState('');
   const dispatch = useDispatch();
 
   function handleChange(event) {
@@ -32,21 +31,23 @@ function Labsel() {
     axios.post(url, data, {headers: headers, responseType: 'blob'})
     .then(response => {
       const audioBlob = new Blob([response.data], {type: 'audio/mp3'});
-      const audioRef = ref(storage, 'audio.mp3');
-      uploadBytes(audioRef, audioBlob)
-      .then(snapshot => {
-        console.log('Uploaded audio successfully');
-        snapshot.ref.getDownloadURL()
-          .then(url => {
-            console.log('Audio download URL:', url);
-            dispatch(setAudioUrl(url));
-          })
-          .catch(error => console.error(error));
-      })
-      .catch(error => console.error(error));
+      const audioFilename = Math.floor(Math.random() * 1000000000) + '.mp3';
+  const audioRef = ref(storage, audioFilename);
+  uploadBytes(audioRef, audioBlob)
+    .then(snapshot => {
+      console.log('Uploaded audio successfully');
+      getDownloadURL(snapshot.ref)
+        .then(url => {
+          console.log('Audio download URL:', url);
+          dispatch(setAudioUrl(url));
+          setAudioUrlLocal(url); // set local state as well if needed
+        })
+        .catch(error => console.error(error));
     })
     .catch(error => console.error(error));
-}
+})
+    .catch(error => console.error(error));
+  }
 
   return (
     <div>
